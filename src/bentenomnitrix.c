@@ -217,39 +217,9 @@ _create_image_loop(appdata_s* ad) {
 			_file_abs_resource_path_get("OmnitrixWildmutt.png", image_loop->path, PATH_MAX);
 		else if (i == 14)
 			_file_abs_resource_path_get("OmnitrixWildvine.png", image_loop->path, PATH_MAX);
+
 		if (i == ad->loop_size - 1)
 			last_loop = image_loop;
-
-		/*switch(i){
-			case 1:
-				_file_abs_resource_path_get("OmnitrixHeatblast.png", image_loop->path, PATH_MAX); break;
-			case 2:
-				_file_abs_resource_path_get("OmnitrixXLR8.png", image_loop->path, PATH_MAX); break;
-			case 3:
-				_file_abs_resource_path_get("OmnitrixUpchuck.png", image_loop->path, PATH_MAX); break;
-			case 4:
-				_file_abs_resource_path_get("OmnitrixBlitzwolfer.png", image_loop->path, PATH_MAX); break;
-			case 5:
-				_file_abs_resource_path_get("OmnitrixCannonbolt.png", image_loop->path, PATH_MAX); break;
-			case 6:
-				_file_abs_resource_path_get("OmnitrixDiamondhead.png", image_loop->path, PATH_MAX); break;
-			case 7:
-				_file_abs_resource_path_get("OmnitrixFourArms.png", image_loop->path, PATH_MAX); break;
-			case 8:
-				_file_abs_resource_path_get("OmnitrixGhostfreak.png", image_loop->path, PATH_MAX); break;
-			case 9:
-				_file_abs_resource_path_get("OmnitrixGreyMatter.png", image_loop->path, PATH_MAX); break;
-			case 10:
-				_file_abs_resource_path_get("OmnitrixRipjaws.png", image_loop->path, PATH_MAX); break;
-			case 11:
-				_file_abs_resource_path_get("OmnitrixStinkfly.png", image_loop->path, PATH_MAX); break;
-			case 12:
-				_file_abs_resource_path_get("OmnitrixUpgrade.png", image_loop->path, PATH_MAX); break;
-			case 13:
-				_file_abs_resource_path_get("OmnitrixWildmutt.png", image_loop->path, PATH_MAX); break;
-			case 14:
-				_file_abs_resource_path_get("OmnitrixWildvine.png", image_loop->path, PATH_MAX); break;
-		}*/
 
 		switch(i) {
 			case 0:
