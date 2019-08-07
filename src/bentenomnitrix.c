@@ -1,7 +1,9 @@
 #include "bentenomnitrix.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <dirent.h>
 #include <string.h>
+#include <time.h>
 #define PATH_MAX 80
 
 typedef struct loop_image {
@@ -171,11 +173,34 @@ _reset_show(loop* image_loop, int size) {
 }
 
 static void
+_generate_random_order(int* rand_order, int size) {
+	for (int i = 0; i < size; i++) rand_order[i] = i;
+	for (int z = 0; z < 4; z++) {
+		for (int order = 0; order < size; order++) {
+			int rand_int = rand() % size;
+	        int temp = rand_order[rand_int];
+	        rand_order[rand_int] = rand_order[order];
+	        rand_order[order] = temp;
+		}
+	}
+
+	/*for (int i = 0; i < size; i++) {
+		char snum[30];
+		snprintf(snum, 30, "RandInt %d: %d", i, rand_order[i]);
+		dlog_print(DLOG_DEBUG, "Random Stuffs", snum);
+	}*/
+}
+
+static void
 _create_image_loop(appdata_s* ad) {
 	ad->image_loop = malloc(sizeof(loop));
 	loop* prev_loop = NULL;
 	loop* last_loop = NULL;
 	ad->loop_size = 15;
+
+	int* loop_order = malloc(sizeof(int) * ad->loop_size);
+	loop_order[0] = -1;
+	_generate_random_order(&loop_order[1], ad->loop_size - 1);
 
 	for (int i = ad->loop_size - 1; i >= 0; i--) {
 		loop* image_loop = malloc(0);
@@ -189,33 +214,33 @@ _create_image_loop(appdata_s* ad) {
 		image_loop->id = i;
 		image_loop->path = malloc(sizeof(char) * PATH_MAX);
 
-		if (i == 1)
+		if (loop_order[i] == 0)
 			_file_abs_resource_path_get("OmnitrixHeatblast.png", image_loop->path, PATH_MAX);
-		else if (i == 2)
+		else if (loop_order[i] == 1)
 			_file_abs_resource_path_get("OmnitrixXLR8.png", image_loop->path, PATH_MAX);
-		else if (i == 3)
+		else if (loop_order[i] == 2)
 			_file_abs_resource_path_get("OmnitrixUpchuck.png", image_loop->path, PATH_MAX);
-		else if (i == 4)
+		else if (loop_order[i] == 3)
 			_file_abs_resource_path_get("OmnitrixBlitzwolfer.png", image_loop->path, PATH_MAX);
-		else if (i == 5)
+		else if (loop_order[i] == 4)
 			_file_abs_resource_path_get("OmnitrixCannonbolt.png", image_loop->path, PATH_MAX);
-		else if (i == 6)
+		else if (loop_order[i] == 5)
 			_file_abs_resource_path_get("OmnitrixDiamondhead.png", image_loop->path, PATH_MAX);
-		else if (i == 7)
+		else if (loop_order[i] == 6)
 			_file_abs_resource_path_get("OmnitrixFourArms.png", image_loop->path, PATH_MAX);
-		else if (i == 8)
+		else if (loop_order[i] == 7)
 			_file_abs_resource_path_get("OmnitrixGhostfreak.png", image_loop->path, PATH_MAX);
-		else if (i == 9)
+		else if (loop_order[i] == 8)
 			_file_abs_resource_path_get("OmnitrixGreyMatter.png", image_loop->path, PATH_MAX);
-		else if (i == 10)
+		else if (loop_order[i] == 9)
 			_file_abs_resource_path_get("OmnitrixRipjaws.png", image_loop->path, PATH_MAX);
-		else if (i == 11)
+		else if (loop_order[i] == 10)
 			_file_abs_resource_path_get("OmnitrixStinkfly.png", image_loop->path, PATH_MAX);
-		else if (i == 12)
+		else if (loop_order[i] == 11)
 			_file_abs_resource_path_get("OmnitrixUpgrade.png", image_loop->path, PATH_MAX);
-		else if (i == 13)
+		else if (loop_order[i] == 12)
 			_file_abs_resource_path_get("OmnitrixWildmutt.png", image_loop->path, PATH_MAX);
-		else if (i == 14)
+		else if (loop_order[i] == 13)
 			_file_abs_resource_path_get("OmnitrixWildvine.png", image_loop->path, PATH_MAX);
 
 		if (i == ad->loop_size - 1)
@@ -235,6 +260,7 @@ _create_image_loop(appdata_s* ad) {
 
 	}
 
+	free(loop_order);
 	prev_loop = NULL;
 	last_loop = NULL;
 	loop* loops = ad->image_loop;
@@ -440,6 +466,8 @@ main(int argc, char *argv[])
 {
 	appdata_s ad = {0,};
 	int ret = 0;
+
+	srand(time(0));
 
 	ui_app_lifecycle_callback_s event_callback = {0,};
 	app_event_handler_h handlers[5] = {NULL, };
