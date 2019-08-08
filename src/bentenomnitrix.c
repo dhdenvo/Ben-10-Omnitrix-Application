@@ -4,6 +4,7 @@
 #include <dirent.h>
 #include <string.h>
 #include <time.h>
+#include <player.h>
 #define PATH_MAX 80
 
 typedef struct loop_image {
@@ -26,6 +27,7 @@ typedef struct appdata {
 	int rotat;
 	int start;
 	Ecore_Timer* timer;
+	player_h player;
 } appdata_s;
 
 static void
@@ -146,6 +148,9 @@ static void
 _advance_pic(void* data, double pos) {
 	dlog_print(DLOG_DEBUG, "TIMER STUFF", "Timer Add!");
 	appdata_s* ad = data;
+
+	player_stop(ad->player);
+
 	_go_to_next(ad->image_loop, ad->loop_size);
 	_display_images(ad->image_loop, ad->conform, ad->loop_size);
 	if (ad->start && ad->start_screen->id == 1)
@@ -341,6 +346,31 @@ create_base_gui(appdata_s *ad)
 	evas_object_show(ad->win);
 }
 
+static void
+create_base_audio(appdata_s *ad) {
+	int error_code = 0;
+	error_code = player_create(&ad->player);
+	if (error_code != PLAYER_ERROR_NONE)
+		dlog_print(DLOG_ERROR, LOG_TAG, "Failed to create player");
+
+	char* audio_path = malloc(sizeof(char) * PATH_MAX);
+	_file_abs_resource_path_get("OmnitrixStartup.mp3", audio_path, PATH_MAX);
+
+	error_code = player_set_uri(ad->player, audio_path);
+	if (error_code != PLAYER_ERROR_NONE)
+	    dlog_print(DLOG_ERROR, LOG_TAG, "Failed to set URI: Error code = %d", error_code);
+
+	error_code = player_prepare(ad->player);
+	if (error_code != PLAYER_ERROR_NONE)
+	    dlog_print(DLOG_ERROR, LOG_TAG, "Failed to prepare player: error code = %d", error_code);
+
+	error_code = player_start(ad->player);
+	if (error_code != PLAYER_ERROR_NONE)
+	    dlog_print(DLOG_ERROR, LOG_TAG, "Failed to start player: error code = %d", error_code);
+
+}
+
+
 static bool
 app_create(void *data)
 {
@@ -351,6 +381,7 @@ app_create(void *data)
 	appdata_s *ad = data;
 
 	ad->start = 1;
+	create_base_audio(ad);
 	create_base_gui(ad);
 	ecore_animator_frametime_set(1. / 50);
 
