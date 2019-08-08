@@ -448,7 +448,7 @@ app_resume(void *data)
 
 	_reset_show(ad->image_loop, ad->loop_size);
 	_display_images(ad->image_loop, ad->conform, ad->loop_size);
-	ad->timer = ecore_timer_add(2.5, _advance_pic, ad);
+	ad->timer = ecore_timer_add(2.54, _advance_pic, ad);
 }
 
 static void
