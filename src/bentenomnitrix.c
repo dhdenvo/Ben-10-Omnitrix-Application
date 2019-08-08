@@ -395,6 +395,7 @@ app_pause(void *data)
 {
 	/* Take necessary actions when application becomes invisible. */
 	appdata_s *ad = data;
+	player_stop(ad->player);
 	ecore_timer_del(ad->timer);
 	_clear_show(ad->image_loop, ad->loop_size);
 	_display_images(ad->image_loop, ad->conform, ad->loop_size);
