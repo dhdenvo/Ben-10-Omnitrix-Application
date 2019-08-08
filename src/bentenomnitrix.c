@@ -364,10 +364,6 @@ create_base_audio(appdata_s *ad) {
 	if (error_code != PLAYER_ERROR_NONE)
 	    dlog_print(DLOG_ERROR, LOG_TAG, "Failed to prepare player: error code = %d", error_code);
 
-	error_code = player_start(ad->player);
-	if (error_code != PLAYER_ERROR_NONE)
-	    dlog_print(DLOG_ERROR, LOG_TAG, "Failed to start player: error code = %d", error_code);
-
 }
 
 
@@ -444,6 +440,10 @@ app_resume(void *data)
 
 	ad->rotat = 0;
 	eext_rotary_event_handler_add(_rotary_handler_cb, ad);
+
+	int error_code = player_start(ad->player);
+	if (error_code != PLAYER_ERROR_NONE)
+		dlog_print(DLOG_ERROR, LOG_TAG, "Failed to start player: error code = %d", error_code);
 
 	_reset_show(ad->image_loop, ad->loop_size);
 	_display_images(ad->image_loop, ad->conform, ad->loop_size);
