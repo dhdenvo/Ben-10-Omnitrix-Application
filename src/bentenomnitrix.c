@@ -28,6 +28,7 @@ typedef struct appdata {
 	int start;
 	Ecore_Timer* timer;
 	player_h player;
+	char* player_path;
 } appdata_s;
 
 static void
@@ -94,12 +95,12 @@ _go_to_prev(loop* image_loop, int size) {
 	int next = 0;
 	for (int i = 0; i < size; i++) {
 
-		switch (image_loop->id) {
+		/*switch (image_loop->id) {
 			case 0: dlog_print(DLOG_DEBUG, LOG_TAG, "Stuff and Things Zero"); break;
 			case 1: dlog_print(DLOG_DEBUG, LOG_TAG, "Stuff and Things Uno"); break;
 			case 2: dlog_print(DLOG_DEBUG, LOG_TAG, "Stuff and Things Due"); break;
 			case 3: dlog_print(DLOG_DEBUG, LOG_TAG, "Stuff and Things Tre"); break;
-		}
+		}*/
 
 		next = next + image_loop->show;
 		image_loop->show = next - image_loop->show;
@@ -353,10 +354,10 @@ create_base_audio(appdata_s *ad) {
 	if (error_code != PLAYER_ERROR_NONE)
 		dlog_print(DLOG_ERROR, LOG_TAG, "Failed to create player");
 
-	char* audio_path = malloc(sizeof(char) * PATH_MAX);
-	_file_abs_resource_path_get("OmnitrixStartup.mp3", audio_path, PATH_MAX);
+	ad->player_path = malloc(sizeof(char) * PATH_MAX);
+	_file_abs_resource_path_get("OmnitrixStartup.mp3", ad->player_path, PATH_MAX);
 
-	error_code = player_set_uri(ad->player, audio_path);
+	error_code = player_set_uri(ad->player, ad->player_path);
 	if (error_code != PLAYER_ERROR_NONE)
 	    dlog_print(DLOG_ERROR, LOG_TAG, "Failed to set URI: Error code = %d", error_code);
 
@@ -455,6 +456,17 @@ static void
 app_terminate(void *data)
 {
 	/* Release all resources. */
+	appdata_s *ad = data;
+
+	free(ad->player_path);
+	loop* image_loop = ad->image_loop;
+	loop* next = NULL;
+	for (int i = 0; i < ad->loop_size; i++) {
+		next = image_loop->next;
+		free(image_loop->path);
+		free(image_loop);
+		image_loop = next;
+	}
 }
 
 static void
