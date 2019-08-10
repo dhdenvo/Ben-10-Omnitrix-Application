@@ -134,16 +134,26 @@ _rotary_handler_cb(void *data, Eext_Rotary_Event_Info *ev) {
 		}
 	}
 
+	int loop_step = 0;
     if (ad->rotat == -8) {
     	_go_to_prev(ad->image_loop, ad->loop_size);
     	_display_images(ad->image_loop, ad->conform, ad->loop_size);
     	dlog_print(DLOG_DEBUG, LOG_TAG, "Bezel Prev");
     	ad->rotat = 7;
+    	loop_step = 1;
     } else if (ad->rotat == 8) {
     	_go_to_next(ad->image_loop, ad->loop_size);
     	_display_images(ad->image_loop, ad->conform, ad->loop_size);
     	dlog_print(DLOG_DEBUG, LOG_TAG, "Bezel Next");
     	ad->rotat = -7;
+    	loop_step = 1;
+    }
+
+    if (loop_step) {
+    	for (int aud_clip = 0; aud_clip < ad->aud_size; aud_clip++)
+    		player_stop(ad->zoom[aud_clip].player);
+    	int rand_int = (rand() % 3) + 1;
+    	player_start(ad->zoom[rand_int].player);
     }
 
     return EINA_FALSE;
