@@ -17,18 +17,23 @@ typedef struct loop_image {
 	int id;
 } loop;
 
+typedef struct aud_player {
+	player_h player;
+	char* path;
+} walkman;
+
 typedef struct appdata {
 	Evas_Object *win;
 	Evas_Object *conform;
 	Evas_Object *image;
 	loop* start_screen;
 	loop* image_loop;
+	Ecore_Timer* timer;
+	walkman* zoom;
+	int aud_size;
 	int loop_size;
 	int rotat;
 	int start;
-	Ecore_Timer* timer;
-	player_h player;
-	char* player_path;
 } appdata_s;
 
 static void
@@ -150,7 +155,7 @@ _advance_pic(void* data, double pos) {
 	dlog_print(DLOG_DEBUG, "TIMER STUFF", "Timer Add!");
 	appdata_s* ad = data;
 
-	player_stop(ad->player);
+	player_stop(ad->zoom[0].player);
 
 	_go_to_next(ad->image_loop, ad->loop_size);
 	_display_images(ad->image_loop, ad->conform, ad->loop_size);
@@ -349,22 +354,19 @@ create_base_gui(appdata_s *ad)
 
 static void
 create_base_audio(appdata_s *ad) {
-	int error_code = 0;
-	error_code = player_create(&ad->player);
-	if (error_code != PLAYER_ERROR_NONE)
-		dlog_print(DLOG_ERROR, LOG_TAG, "Failed to create player");
-
-	ad->player_path = malloc(sizeof(char) * PATH_MAX);
-	_file_abs_resource_path_get("OmnitrixStartup.mp3", ad->player_path, PATH_MAX);
-
-	error_code = player_set_uri(ad->player, ad->player_path);
-	if (error_code != PLAYER_ERROR_NONE)
-	    dlog_print(DLOG_ERROR, LOG_TAG, "Failed to set URI: Error code = %d", error_code);
-
-	error_code = player_prepare(ad->player);
-	if (error_code != PLAYER_ERROR_NONE)
-	    dlog_print(DLOG_ERROR, LOG_TAG, "Failed to prepare player: error code = %d", error_code);
-
+	ad->zoom = malloc(sizeof(walkman) * ad->aud_size);
+	for (int audio_clip = 0; audio_clip < ad->aud_size; audio_clip++) {
+		player_create(&ad->zoom[audio_clip].player);
+		ad->zoom[audio_clip].path = malloc(sizeof(char) * PATH_MAX);
+		switch (audio_clip) {
+			case 0: _file_abs_resource_path_get("OmnitrixStartup.mp3", ad->zoom[audio_clip].path, PATH_MAX); break;
+			case 1: _file_abs_resource_path_get("OmnitrixAlienSwapOne.mp3", ad->zoom[audio_clip].path, PATH_MAX); break;
+			case 2: _file_abs_resource_path_get("OmnitrixAlienSwapTwo.mp3", ad->zoom[audio_clip].path, PATH_MAX); break;
+			case 3: _file_abs_resource_path_get("OmnitrixAlienSwapThree.mp3", ad->zoom[audio_clip].path, PATH_MAX); break;
+		}
+		player_set_uri(ad->zoom[audio_clip].player, ad->zoom[audio_clip].path);
+		player_prepare(ad->zoom[audio_clip].player);
+	}
 }
 
 
@@ -378,6 +380,7 @@ app_create(void *data)
 	appdata_s *ad = data;
 
 	ad->start = 1;
+	ad->aud_size = 4;
 	create_base_audio(ad);
 	create_base_gui(ad);
 	ecore_animator_frametime_set(1. / 50);
@@ -396,7 +399,10 @@ app_pause(void *data)
 {
 	/* Take necessary actions when application becomes invisible. */
 	appdata_s *ad = data;
-	player_stop(ad->player);
+
+	for (int aud_clip = 0; aud_clip < ad->aud_size; aud_clip++)
+		player_stop(ad->zoom[aud_clip].player);
+
 	ecore_timer_del(ad->timer);
 	_clear_show(ad->image_loop, ad->loop_size);
 	_display_images(ad->image_loop, ad->conform, ad->loop_size);
@@ -443,9 +449,7 @@ app_resume(void *data)
 	ad->rotat = 0;
 	eext_rotary_event_handler_add(_rotary_handler_cb, ad);
 
-	int error_code = player_start(ad->player);
-	if (error_code != PLAYER_ERROR_NONE)
-		dlog_print(DLOG_ERROR, LOG_TAG, "Failed to start player: error code = %d", error_code);
+	player_start(ad->zoom[0].player);
 
 	_reset_show(ad->image_loop, ad->loop_size);
 	_display_images(ad->image_loop, ad->conform, ad->loop_size);
@@ -458,7 +462,10 @@ app_terminate(void *data)
 	/* Release all resources. */
 	appdata_s *ad = data;
 
-	free(ad->player_path);
+	for (int aud_clip = 0; aud_clip < ad->aud_size; aud_clip++)
+		free(ad->zoom->path);
+	free(ad->zoom);
+
 	loop* image_loop = ad->image_loop;
 	loop* next = NULL;
 	for (int i = 0; i < ad->loop_size; i++) {
