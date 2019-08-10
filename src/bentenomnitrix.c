@@ -463,7 +463,7 @@ app_terminate(void *data)
 	appdata_s *ad = data;
 
 	for (int aud_clip = 0; aud_clip < ad->aud_size; aud_clip++)
-		free(ad->zoom->path);
+		free(ad->zoom[aud_clip].path);
 	free(ad->zoom);
 
 	loop* image_loop = ad->image_loop;
