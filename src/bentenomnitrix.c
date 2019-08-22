@@ -7,6 +7,7 @@
 #include <player.h>
 #define PATH_MAX 80
 
+//Linked list to manage the image viewing system
 typedef struct loop_image {
 	Evas_Object* image;
 	struct loop_image* next;
@@ -17,11 +18,13 @@ typedef struct loop_image {
 	int id;
 } loop;
 
+//Structure for controlling an audio clip
 typedef struct aud_player {
 	player_h player;
 	char* path;
 } walkman;
 
+//Structure for the data that gets passed throughout the Tizen app
 typedef struct appdata {
 	Evas_Object *win;
 	Evas_Object *conform;
@@ -50,6 +53,7 @@ win_back_cb(void *data, Evas_Object *obj, void *event_info)
 	elm_win_lower(ad->win);
 }
 
+//Method that gets the absolute path of a variable in the res folder
 static void
 _file_abs_resource_path_get(char *res_file_path, char *abs_path, int buf_size) {
    char *res_dir_path = app_get_resource_path();
@@ -61,97 +65,115 @@ _file_abs_resource_path_get(char *res_file_path, char *abs_path, int buf_size) {
      }
 }
 
+//Display all the shown image in an image loop
 static void
 _display_images(loop* image_loop, Evas_Object* conform, int size) {
+	//Loop through the image loop linked list
 	for (int i = 0; i < size; i++) {
+		//If the current image is visible
 		if (image_loop->show == 1) {
+			//Tizen image setup (required for all images)
 			image_loop->image = elm_image_add(conform);
 			elm_image_file_set(image_loop->image, image_loop->path, NULL);
+			//If the image is an animated image (animated gif for ex)
 			if (image_loop->animated) {
 			    elm_image_animated_set(image_loop->image, EINA_TRUE);
 			    elm_image_animated_play_set(image_loop->image, EINA_TRUE);
 			}
 			elm_object_content_set(conform, image_loop->image);
+			//Show the image on the gui
 			evas_object_show(image_loop->image);
 		} else {
+			//Hide the image from the gui
 			evas_object_hide(image_loop->image);
 		}
+		//Look at the next image in the linked list
 		image_loop = image_loop->next;
 	}
 
 }
 
+//Make the next image in the linked list visible
 static void
 _go_to_next(loop* image_loop, int size) {
 	int prev = 0;
+	//Loop through the image loop linked list
 	for (int i = 0; i < size; i++) {
+		//Swap the current image's show value with the previous image's shown value
 		prev = prev + image_loop->show;
 		image_loop->show = prev - image_loop->show;
 		prev = prev - image_loop->show;
+		//If the image is the last in the loop and the next shown value should be 1 (on)
 		if (i == size - 1 && prev == 1) image_loop->next->show = 1;
+		//Look at the next image in the linked list
 		image_loop = image_loop->next;
 	}
 }
 
-
+//Make the previous image in the linked list visible
 static void
 _go_to_prev(loop* image_loop, int size) {
-	dlog_print(DLOG_DEBUG, LOG_TAG, "Previous Stuffsssss");
 	int next = 0;
+	//Loop through the image loop linked list
 	for (int i = 0; i < size; i++) {
-
-		/*switch (image_loop->id) {
-			case 0: dlog_print(DLOG_DEBUG, LOG_TAG, "Stuff and Things Zero"); break;
-			case 1: dlog_print(DLOG_DEBUG, LOG_TAG, "Stuff and Things Uno"); break;
-			case 2: dlog_print(DLOG_DEBUG, LOG_TAG, "Stuff and Things Due"); break;
-			case 3: dlog_print(DLOG_DEBUG, LOG_TAG, "Stuff and Things Tre"); break;
-		}*/
-
+		//Swap the current image's show value with the next image's shown value
 		next = next + image_loop->show;
 		image_loop->show = next - image_loop->show;
 		next = next - image_loop->show;
+		//If the image is the last in the loop and the next shown value should be 1 (on)
 		if (i == size - 1 && next == 1) image_loop->prev->show = 1;
+		//If the image does not have a previous image, use the next one
 		if (image_loop->prev == NULL) {
 			image_loop = image_loop->next;
-			dlog_print(DLOG_DEBUG, LOG_TAG, "CRAPPPP AGAIIIIIIIINNNNNNNNNNN");
 		} else {
 			image_loop = image_loop->prev;
 		}
 	}
 }
 
-
+//The method for handling rotation of the watch bezel
 Eina_Bool
 _rotary_handler_cb(void *data, Eext_Rotary_Event_Info *ev) {
 	appdata_s *ad = data;
+	//If the startup image isn't being shown run the rotary options
 	if (ad->image_loop->show == 0) {
+		//If the bezel is rotated clockwise, add to the rotation value
 		if (ev->direction == EEXT_ROTARY_DIRECTION_CLOCKWISE) {
 			dlog_print(DLOG_DEBUG, LOG_TAG, "Rotary device rotated in clockwise direction");
 			ad->rotat += 1;
+		//If the bezel is rotated counter-clockwise, subtract from the rotation value
 		} else {
 			dlog_print(DLOG_DEBUG, LOG_TAG, "Rotary device rotated in counter-clockwise direction");
 			ad->rotat -= 1;
 		}
 	}
 
+	//Variable to check if the loop was changed
 	int loop_step = 0;
+	//If the bezel was rotated counter-clockwise past a certain point, go to the previous image in the loop
     if (ad->rotat == -8) {
     	_go_to_prev(ad->image_loop, ad->loop_size);
     	_display_images(ad->image_loop, ad->conform, ad->loop_size);
     	dlog_print(DLOG_DEBUG, LOG_TAG, "Bezel Prev");
+    	//Reset the rotation value
     	ad->rotat = 7;
     	loop_step = 1;
+	//If the bezel was rotated counter-clockwise past a certain point, go to the next image in the loop
     } else if (ad->rotat == 8) {
     	_go_to_next(ad->image_loop, ad->loop_size);
     	_display_images(ad->image_loop, ad->conform, ad->loop_size);
     	dlog_print(DLOG_DEBUG, LOG_TAG, "Bezel Next");
+    	//Reset the rotation value
     	ad->rotat = -7;
     	loop_step = 1;
     }
 
+    //If the image was changed, play a swapping audio clip
     if (loop_step) {
+    	//Stop all of the audio clips from playing
     	for (int aud_clip = 0; aud_clip < ad->aud_size; aud_clip++)
     		player_stop(ad->zoom[aud_clip].player);
+    	//Choose a random swap audio clip to play
     	int rand_int = (rand() % 3) + 1;
     	player_start(ad->zoom[rand_int].player);
     }
@@ -159,44 +181,56 @@ _rotary_handler_cb(void *data, Eext_Rotary_Event_Info *ev) {
     return EINA_FALSE;
 }
 
-
+//Method that runs after the startup timer is finished (kills the timer afterwards)
 static void
 _advance_pic(void* data, double pos) {
 	dlog_print(DLOG_DEBUG, "TIMER STUFF", "Timer Add!");
 	appdata_s* ad = data;
 
+	//Stop the startup audio clip
 	player_stop(ad->zoom[0].player);
 
+	//Show the next image in the image loop (move from startup clip to first image)
 	_go_to_next(ad->image_loop, ad->loop_size);
 	_display_images(ad->image_loop, ad->conform, ad->loop_size);
+	//Hide the start screen
 	if (ad->start && ad->start_screen->id == 1)
 		evas_object_hide(ad->start_screen->image);
+	//Kill the timer that initially ran the method
 	ecore_timer_del(ad->timer);
 }
 
+//Make all the images not visible
 static void
 _clear_show(loop* image_loop, int size) {
+	//Loop through the image loop linked list
 	for (int i = 0; i < size; i++) {
 		image_loop->show = 0;
+		//Look at the next image in the linked list
 		image_loop = image_loop->next;
 	}
 }
 
+//Reset the image loop (making the first startup image be the only image visible)
 static void
 _reset_show(loop* image_loop, int size) {
+	//Loop through the image loop linked list
 	for (int i = 0; i < size; i++) {
-		if (i == 0)
-			image_loop->show = 1;
-		else
-			image_loop->show = 0;
+		if (i == 0) image_loop->show = 1;
+		else image_loop->show = 0;
+		//Look at the next image in the linked list
 		image_loop = image_loop->next;
 	}
 }
 
+//Fill an integer array with integers 0 to size - 1 in a random order
 static void
 _generate_random_order(int* rand_order, int size) {
+	//Fill the array with integers 0 to size - 1
 	for (int i = 0; i < size; i++) rand_order[i] = i;
+	//Randomize the list 4 times (arbitrary number)
 	for (int z = 0; z < 4; z++) {
+		//Loop through the integer array and randomly swap the integers with eachother
 		for (int order = 0; order < size; order++) {
 			int rand_int = rand() % size;
 	        int temp = rand_order[rand_int];
@@ -205,25 +239,32 @@ _generate_random_order(int* rand_order, int size) {
 		}
 	}
 
-	/*for (int i = 0; i < size; i++) {
+	/*//Loop to check if the randomizing worked
+	for (int i = 0; i < size; i++) {
 		char snum[30];
 		snprintf(snum, 30, "RandInt %d: %d", i, rand_order[i]);
 		dlog_print(DLOG_DEBUG, "Random Stuffs", snum);
 	}*/
 }
 
+//Create the image loop by filling it with images, paths, the order, etc
 static void
 _create_image_loop(appdata_s* ad) {
+	//Generate the first main loop
 	ad->image_loop = malloc(sizeof(loop));
 	loop* prev_loop = NULL;
 	loop* last_loop = NULL;
+	//Constant value for the size of the linked list
 	ad->loop_size = 15;
 
+	//Create the order list and randomize it
 	int* loop_order = malloc(sizeof(int) * ad->loop_size);
 	loop_order[0] = -1;
 	_generate_random_order(&loop_order[1], ad->loop_size - 1);
 
+	//Loop through the linked list, allocate memory for it, fill it with arrays, and assign the next values
 	for (int i = ad->loop_size - 1; i >= 0; i--) {
+		//Allocate memory for each image loop
 		loop* image_loop = malloc(0);
 		if (i == 0) {
 			image_loop = ad->image_loop;
@@ -231,10 +272,15 @@ _create_image_loop(appdata_s* ad) {
 			image_loop = malloc(sizeof(loop));
 		}
 
+		//Set basic values for the image loop
 		image_loop->animated = 0;
 		image_loop->id = i;
+		//Allocate memory for the path of the image
 		image_loop->path = malloc(sizeof(char) * PATH_MAX);
 
+		//Define the paths for each image
+		//The reason it is a large array of if statements with global string values rather than making it dynamic with an array of strings
+		//is because the emulator had trouble getting the path without defining the string globally for each path (or else the app would crash)
 		if (loop_order[i] == 0)
 			_file_abs_resource_path_get("OmnitrixHeatblast.png", image_loop->path, PATH_MAX);
 		else if (loop_order[i] == 1)
@@ -264,9 +310,10 @@ _create_image_loop(appdata_s* ad) {
 		else if (loop_order[i] == 13)
 			_file_abs_resource_path_get("OmnitrixWildvine.png", image_loop->path, PATH_MAX);
 
-		if (i == ad->loop_size - 1)
-			last_loop = image_loop;
+		//This is a separate if statement to make the above if statement as dynamic as possible
+		if (i == ad->loop_size - 1) last_loop = image_loop;
 
+		//Specific cases for the first and second images in the loops
 		switch(i) {
 			case 0:
 				_file_abs_resource_path_get("OmnitrixStartup.gif", image_loop->path, PATH_MAX);
@@ -281,10 +328,12 @@ _create_image_loop(appdata_s* ad) {
 
 	}
 
+	//Free the memory for the random int array after done with it
 	free(loop_order);
 	prev_loop = NULL;
 	last_loop = NULL;
 	loop* loops = ad->image_loop;
+	//Loop through the linked list in reverse and assign previous values
 	for (int i = 0; i < ad->loop_size; i++) {
 		loops->prev = prev_loop;
 		prev_loop = loops;
@@ -343,9 +392,10 @@ create_base_gui(appdata_s *ad)
 		ad->start_screen->show = 0;
 	}
 
-	/*char* abs_path_to_image = malloc(sizeof(char) * PATH_MAX);
-	 //_file_abs_resource_path_get("hulk.png", abs_path_to_image, PATH_MAX);
-	 _file_abs_resource_path_get("OmnitrixStartup.gif", abs_path_to_image, PATH_MAX);
+	/*A basic example of how to display an image on the watch
+	char* abs_path_to_image = malloc(sizeof(char) * PATH_MAX);
+	//_file_abs_resource_path_get("hulk.png", abs_path_to_image, PATH_MAX);
+	_file_abs_resource_path_get("OmnitrixStartup.gif", abs_path_to_image, PATH_MAX);
 
 	ad->image = elm_image_add(ad->conform);
     elm_image_file_set(ad->image, abs_path_to_image, NULL);
@@ -362,11 +412,17 @@ create_base_gui(appdata_s *ad)
 	evas_object_show(ad->win);
 }
 
+
+//Create the array of audio clips by assigning paths and preparing them
 static void
 create_base_audio(appdata_s *ad) {
+	//Allocate memory for the array
 	ad->zoom = malloc(sizeof(walkman) * ad->aud_size);
+	//Loop through the array to assign the paths for each audio clip
 	for (int audio_clip = 0; audio_clip < ad->aud_size; audio_clip++) {
+		//Create the audio player in the array
 		player_create(&ad->zoom[audio_clip].player);
+		//Define the path for the audio player
 		ad->zoom[audio_clip].path = malloc(sizeof(char) * PATH_MAX);
 		switch (audio_clip) {
 			case 0: _file_abs_resource_path_get("OmnitrixStartup.mp3", ad->zoom[audio_clip].path, PATH_MAX); break;
@@ -374,6 +430,7 @@ create_base_audio(appdata_s *ad) {
 			case 2: _file_abs_resource_path_get("OmnitrixAlienSwapTwo.mp3", ad->zoom[audio_clip].path, PATH_MAX); break;
 			case 3: _file_abs_resource_path_get("OmnitrixAlienSwapThree.mp3", ad->zoom[audio_clip].path, PATH_MAX); break;
 		}
+		//Prepare the players
 		player_set_uri(ad->zoom[audio_clip].player, ad->zoom[audio_clip].path);
 		player_prepare(ad->zoom[audio_clip].player);
 	}
@@ -413,9 +470,12 @@ app_pause(void *data)
 	for (int aud_clip = 0; aud_clip < ad->aud_size; aud_clip++)
 		player_stop(ad->zoom[aud_clip].player);
 
+	//Stop the startup timer
 	ecore_timer_del(ad->timer);
+	//Clear the display
 	_clear_show(ad->image_loop, ad->loop_size);
 	_display_images(ad->image_loop, ad->conform, ad->loop_size);
+	//Display the start screen
 	if (ad->start) {
 		ad->start_screen->show = 1;
 		_display_images(ad->start_screen, ad->conform, 1);
@@ -428,6 +488,7 @@ app_resume(void *data)
 {
 	/* Take necessary actions when application becomes visible. */
 	appdata_s *ad = data;
+	//Tests to make sure everything is working correctly
 	/*if (ad->image_loop->next->prev != NULL) {
 		dlog_print(DLOG_DEBUG, LOG_TAG, "YAYYYYYYYYYY");
 		switch(ad->image_loop->next->prev->id) {
@@ -453,14 +514,18 @@ app_resume(void *data)
 		dlog_print(DLOG_DEBUG, LOG_TAG, "CRAPPPPPPPPPPPP!!!!!!");
 	}*/
 
+	//Hide the start screen
 	ad->start_screen->show = 0;
 	_display_images(ad->start_screen, ad->conform, 1);
 
+	//Set the rotation value to the default 0
 	ad->rotat = 0;
 	eext_rotary_event_handler_add(_rotary_handler_cb, ad);
 
+	//Play the startup audio
 	player_start(ad->zoom[0].player);
 
+	//Restart the image loop and start the timer
 	_reset_show(ad->image_loop, ad->loop_size);
 	_display_images(ad->image_loop, ad->conform, ad->loop_size);
 	ad->timer = ecore_timer_add(2.54, _advance_pic, ad);
@@ -472,15 +537,20 @@ app_terminate(void *data)
 	/* Release all resources. */
 	appdata_s *ad = data;
 
+	//Free all the audio paths
 	for (int aud_clip = 0; aud_clip < ad->aud_size; aud_clip++)
 		free(ad->zoom[aud_clip].path);
+	//Free the audio player array
 	free(ad->zoom);
 
+	//Loop through the image loop and free all the allocated components
 	loop* image_loop = ad->image_loop;
 	loop* next = NULL;
 	for (int i = 0; i < ad->loop_size; i++) {
 		next = image_loop->next;
+		//Free the path variables
 		free(image_loop->path);
+		//Free the image loop itself
 		free(image_loop);
 		image_loop = next;
 	}
