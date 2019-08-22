@@ -36,7 +36,6 @@ typedef struct appdata {
 	int aud_size;
 	int loop_size;
 	int rotat;
-	int start;
 } appdata_s;
 
 static void
@@ -194,7 +193,7 @@ _advance_pic(void* data, double pos) {
 	_go_to_next(ad->image_loop, ad->loop_size);
 	_display_images(ad->image_loop, ad->conform, ad->loop_size);
 	//Hide the start screen
-	if (ad->start && ad->start_screen->id == 1)
+	if (ad->start_screen->id == 1)
 		evas_object_hide(ad->start_screen->image);
 	//Kill the timer that initially ran the method
 	ecore_timer_del(ad->timer);
@@ -383,14 +382,12 @@ create_base_gui(appdata_s *ad)
 
 	_create_image_loop(ad);
 
-	if (ad->start) {
-		ad->start_screen = malloc(sizeof(loop));
-		ad->start_screen->animated = 0;
-		ad->start_screen->path = malloc(sizeof(char) * PATH_MAX);
-		_file_abs_resource_path_get("OmnitrixMain.png", ad->start_screen->path, PATH_MAX);
-		ad->start_screen->id = 1;
-		ad->start_screen->show = 0;
-	}
+	ad->start_screen = malloc(sizeof(loop));
+	ad->start_screen->animated = 0;
+	ad->start_screen->path = malloc(sizeof(char) * PATH_MAX);
+	_file_abs_resource_path_get("OmnitrixMain.png", ad->start_screen->path, PATH_MAX);
+	ad->start_screen->id = 1;
+	ad->start_screen->show = 0;
 
 	/*A basic example of how to display an image on the watch
 	char* abs_path_to_image = malloc(sizeof(char) * PATH_MAX);
@@ -446,7 +443,6 @@ app_create(void *data)
 		If this function returns false, the application is terminated */
 	appdata_s *ad = data;
 
-	ad->start = 1;
 	ad->aud_size = 4;
 	create_base_audio(ad);
 	create_base_gui(ad);
@@ -476,10 +472,8 @@ app_pause(void *data)
 	_clear_show(ad->image_loop, ad->loop_size);
 	_display_images(ad->image_loop, ad->conform, ad->loop_size);
 	//Display the start screen
-	if (ad->start) {
-		ad->start_screen->show = 1;
-		_display_images(ad->start_screen, ad->conform, 1);
-	}
+	ad->start_screen->show = 1;
+	_display_images(ad->start_screen, ad->conform, 1);
 
 }
 
