@@ -6,6 +6,7 @@
 #include <time.h>
 #include <player.h>
 #define PATH_MAX 80
+#define ROT_MAX 2
 
 //Linked list to manage the image viewing system
 typedef struct loop_image {
@@ -150,20 +151,20 @@ _rotary_handler_cb(void *data, Eext_Rotary_Event_Info *ev) {
 	//Variable to check if the loop was changed
 	int loop_step = 0;
 	//If the bezel was rotated counter-clockwise past a certain point, go to the previous image in the loop
-    if (ad->rotat == -8) {
+    if (ad->rotat == -ROT_MAX) {
     	_go_to_prev(ad->image_loop, ad->loop_size);
     	_display_images(ad->image_loop, ad->conform, ad->loop_size);
     	dlog_print(DLOG_DEBUG, LOG_TAG, "Bezel Prev");
     	//Reset the rotation value
-    	ad->rotat = 7;
+    	ad->rotat = ROT_MAX - 1;
     	loop_step = 1;
 	//If the bezel was rotated counter-clockwise past a certain point, go to the next image in the loop
-    } else if (ad->rotat == 8) {
+    } else if (ad->rotat == ROT_MAX) {
     	_go_to_next(ad->image_loop, ad->loop_size);
     	_display_images(ad->image_loop, ad->conform, ad->loop_size);
     	dlog_print(DLOG_DEBUG, LOG_TAG, "Bezel Next");
     	//Reset the rotation value
-    	ad->rotat = -7;
+    	ad->rotat = - ROT_MAX + 1;
     	loop_step = 1;
     }
 
@@ -522,7 +523,7 @@ app_resume(void *data)
 	//Restart the image loop and start the timer
 	_reset_show(ad->image_loop, ad->loop_size);
 	_display_images(ad->image_loop, ad->conform, ad->loop_size);
-	ad->timer = ecore_timer_add(2.54, _advance_pic, ad);
+	ad->timer = ecore_timer_add(2.55, _advance_pic, ad);
 }
 
 static void
