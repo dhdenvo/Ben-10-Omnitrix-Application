@@ -3,6 +3,6 @@
     <profile name="wearable"/>
     <ui-application appid="org.example.bentenomnitrix" exec="bentenomnitrix" multiple="false" nodisplay="false" taskmanage="true" type="capp">
         <label>Omnitrix</label>
-        <icon>bentenomnitrix.png</icon>
+        <icon>OmnitrixMain.png</icon>
     </ui-application>
 </manifest>
